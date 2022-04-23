@@ -1,0 +1,86 @@
+#Master MicroPython Script
+#Benjamin Fazenbaker
+
+import Temperature
+import utime
+from machine import ADC
+
+start_time = utime.time_ns()
+print(start_time)
+
+try:
+    import struct
+except ImportError:
+    import ustruct as struct
+
+import machine
+#For Connection with main Pico
+#uart2 = machine.UART(0, baudrate=9600, tx=machine.Pin(0), rx=machine.Pin(1), timeout=2000)
+uart2 = machine.UART(0, baudrate=9600, tx=machine.Pin(0), rx=machine.Pin(1), timeout=20)
+
+# For use with a microcontroller board:
+uart = machine.UART(1, baudrate=9600, tx=machine.Pin(4), rx=machine.Pin(5), timeout=2000)
+
+buffer = []
+
+while True:
+    data = uart.read(32)  # read up to 32 bytes
+    data = list(data)
+    # print("read: ", data)          # this is a bytearray type
+
+    buffer += data
+
+    while buffer and buffer[0] != 0x42:
+        buffer.pop(0)
+
+    if len(buffer) > 200:
+        buffer = []  # avoid an overrun if all bad data
+    if len(buffer) < 32:
+        continue
+
+    if buffer[1] != 0x4d:
+        buffer.pop(0)
+        continue
+
+    frame_len = struct.unpack(">H", bytes(buffer[2:4]))[0]
+    if frame_len != 28:
+        buffer = []
+        continue
+
+    frame = struct.unpack(">HHHHHHHHHHHHHH", bytes(buffer[4:]))
+
+    pm10_standard, pm25_standard, pm100_standard, pm10_env, \
+        pm25_env, pm100_env, particles_03um, particles_05um, particles_10um, \
+        particles_25um, particles_50um, particles_100um, skip, checksum = frame
+
+    check = sum(buffer[0:30])
+
+    if check != checksum:
+        buffer = []
+        continue
+    
+    #temperature = t / 100
+    sensor_temp = ADC(4)
+    conversion_factor = 3.3 / 65535
+    reading = sensor_temp.read_u16() * conversion_factor #16 bits
+    temperature = 27 - (reading - 0.706)/0.001721
+    farenheit_temp = ((9*temperature)/5)+32
+
+    Combined = farenheit_temp,particles_03um
+    #print(Combined)
+    
+    #Sending the data
+    if(utime.time_ns() - start_time >= 100000000):
+        #uart2.write(str(Combined))
+        #uart2.write("hello")
+        comstring = str(round(farenheit_temp,2))+","+str(particles_03um)+ "||"
+        uart2.write(comstring)
+        
+        #uart2.sendbreak()
+        
+        #utime.sleep(1)
+        start_time = utime.time_ns()
+        #utime.sleep(2)
+        print(comstring)
+
+buffer = buffer[32:]
