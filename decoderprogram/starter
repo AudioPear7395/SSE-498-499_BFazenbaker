@@ -1,0 +1,7 @@
+rm data.csv
+#Opening the file and running program that receives and gets into .csv file
+cd /home/benjamin/rtl_433/build/src
+sudo ./rtl_433 -F csv:/home/benjamin/decoderprogram/data.csv -R 67 &
+
+cd /home/benjamin/decoderprogram/
+python3 starterpython.py
