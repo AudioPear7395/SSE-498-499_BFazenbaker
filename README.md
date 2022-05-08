@@ -7,3 +7,5 @@ The Temperature.txt is a .py file that is an edited library for the MicroPython 
 The SoftwareUart.ino Code is the Arduino Code on the Middle Raspberry Pi Pico that sends code to the Ground Station
 
 The MasterCcode.ino Code is the Arduino Code that collects the sensor data for the Arduino Raspberry Pi Pico.
+
+As for the Ground Station Code, it is the starter bash script and the starterpython.py files in the decoderprogram folder
